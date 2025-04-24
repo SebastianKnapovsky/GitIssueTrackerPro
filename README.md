@@ -1,2 +1,7 @@
 # GitIssueTrackerPro
-GitIssueTrackerPro (G.I.T.P.)
+GitIssueTracker (G.I.T.P.)
+
+# 🐙 GitIssueTrackerPro
+
+
+
