@@ -21,6 +21,22 @@ namespace GitIssueTracker.Api.Controllers
         }
 
         #region GitHub
+        [HttpGet("github/{repository}")]
+        public async Task<IActionResult> GetIssuesGitHub(string repository)
+        {
+            _logger.LogInformation("Pobieranie listy zgłoszeń GitHub dla repozytorium {Repository}", repository);
+
+            try
+            {
+                var issues = await _gitHubService.GetIssuesAsync(repository);
+                return Ok(issues);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Błąd podczas pobierania zgłoszeń GitHub dla repozytorium {Repository}", repository);
+                return StatusCode(500, "Wystąpił błąd podczas pobierania zgłoszeń GitHub.");
+            }
+        }
 
         [HttpPost("github/{repository}")]
         public async Task<IActionResult> CreateIssueGitHub(string repository, [FromBody] IssueRequest request)
@@ -80,6 +96,23 @@ namespace GitIssueTracker.Api.Controllers
         #endregion
 
         #region GitLab
+        [HttpGet("gitlab/{repository}")]
+        public async Task<IActionResult> GetIssuesGitLab(string repository)
+        {
+            _logger.LogInformation("Pobieranie listy zgłoszeń GitLab dla repozytorium {Repository}", repository);
+
+            try
+            {
+                var issues = await _gitLabService.GetIssuesAsync(repository);
+                return Ok(issues);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Błąd podczas pobierania zgłoszeń GitLab dla repozytorium {Repository}", repository);
+                return StatusCode(500, "Wystąpił błąd podczas pobierania zgłoszeń GitLab.");
+            }
+        }
+
         [HttpPost("gitlab/{repository}")]
         public async Task<IActionResult> CreateIssueGitLab(string repository, [FromBody] IssueRequest request)
         {

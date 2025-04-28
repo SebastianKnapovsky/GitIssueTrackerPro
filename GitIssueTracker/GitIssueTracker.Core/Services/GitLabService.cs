@@ -29,6 +29,39 @@ namespace GitIssueTracker.Core.Services
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _token);
             _httpClient.BaseAddress = new Uri("https://gitlab.com/api/v4/");
         }
+        public async Task<List<IssueResponse>> GetIssuesAsync(string repository)
+        {
+            try
+            {
+                var url = $"projects/{repository}/issues";
+
+                var response = await _httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+
+                var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+
+                var issues = new List<IssueResponse>();
+
+                foreach (var issue in json.EnumerateArray())
+                {
+                    issues.Add(new IssueResponse
+                    {
+                        IssueNumber = issue.GetProperty("iid").GetInt32(),
+                        Url = issue.GetProperty("web_url").GetString() ?? "",
+                        Status = issue.GetProperty("state").GetString()?.ToLower() == "closed" ? IssueStatus.Closed : IssueStatus.Open
+                    });
+                }
+
+                _logger.LogInformation("Pobrano {Count} zgłoszeń z GitLab dla repozytorium {Repository}", issues.Count, repository);
+
+                return issues;
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "Błąd podczas pobierania zgłoszeń z GitLab dla repo {Repository}", repository);
+                throw new ApplicationException("GitLab API error podczas pobierania zgłoszeń");
+            }
+        }
         public async Task<IssueResponse> CreateIssueAsync(string repository, IssueRequest issue)
         {
             try

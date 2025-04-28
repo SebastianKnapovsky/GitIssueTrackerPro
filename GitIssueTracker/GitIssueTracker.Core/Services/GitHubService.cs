@@ -29,6 +29,45 @@ namespace GitIssueTracker.Core.Services
             _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("GitIssueTracker", "1.0"));
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _token);
         }
+        public async Task<List<IssueResponse>> GetIssuesAsync(string repository)
+        {
+            try
+            {
+                repository = Uri.UnescapeDataString(repository);
+
+                var url = $"{_baseUrl}/repos/{repository}/issues";
+
+                var response = await _httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+
+                var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+
+                var issues = new List<IssueResponse>();
+
+                foreach (var issue in json.EnumerateArray())
+                {
+                    var state = issue.TryGetProperty("state", out var stateProp)
+                        ? stateProp.GetString()?.ToLower()
+                        : "open";
+
+                    issues.Add(new IssueResponse
+                    {
+                        IssueNumber = issue.GetProperty("number").GetInt32(),
+                        Url = issue.TryGetProperty("html_url", out var urlProp) ? urlProp.GetString() ?? "" : "",
+                        Status = state == "closed" ? IssueStatus.Closed : IssueStatus.Open
+                    });
+                }
+
+                _logger.LogInformation("Pobrano {Count} zgłoszeń z GitLab dla repozytorium {Repository}", issues.Count, repository);
+
+                return issues;
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "Błąd podczas pobierania zgłoszeń z GitLab dla repo {Repository}", repository);
+                throw new ApplicationException("GitLab API error podczas pobierania zgłoszeń");
+            }
+        }
         public async Task<IssueResponse> CreateIssueAsync(string repository, IssueRequest issue)
         {
             try
